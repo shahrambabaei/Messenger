@@ -4,8 +4,12 @@ import 'dart:io';
 import 'package:chat_app/config/clientprovider.dart';
 import 'package:chat_app/pages/chat_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:future_loading_dialog/future_loading_dialog.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
+import 'package:adaptive_dialog/adaptive_dialog.dart';
 
 class ChatPage extends StatelessWidget {
   final Room room;
@@ -45,10 +49,17 @@ class ChatController extends State<ChatPageWithRoom> {
   Room get room => widget.room;
   late Future<void> loadTimelineFuture;
   late Client client;
+  late Event replyEvent;
+  late Event editEvent;
   late Timeline timeline;
   late String readMarkerEventId;
   List<Event> selectedEvents = [];
-   bool get selectMode => selectedEvents.isNotEmpty;
+  bool get selectMode => selectedEvents.isNotEmpty;
+  FocusNode inputFocus = FocusNode();
+  String get roomId => widget.room.id;
+   bool isRequestingHistory = false;
+  bool isRequestingFuture = false;
+   final int _loadHistoryCount = 100;
 
   @override
   void initState() {
@@ -63,8 +74,146 @@ class ChatController extends State<ChatPageWithRoom> {
     setState(() {});
   }
 
+  void copyEventsAction() {
+    Clipboard.setData(ClipboardData(text: _getSelectedEventString()))
+        .then((value) => Fluttertoast.showToast(
+                  msg: "متن کپی شد",
+                )
+
+            // FlutterToastr.show(
+            //      ,
+            //       context,
+            //       duration: FlutterToastr.lengthLong,
+            //       position: FlutterToastr.top,
+            //     )
+            );
+    setState(() {
+      selectedEvents.clear();
+    });
+  }
+
+  _getSelectedEventString() {
+    for (final event in selectedEvents) {
+      return event.plaintextBody;
+    }
+  }
+
+  bool get canRedactSelectedEvents {
+    // if (isArchived) return false;
+    // final clients = Matrix.of(context).currentBundle;
+    for (final event in selectedEvents) {
+      if (event.canRedact == false && !(event.senderId == client.userID)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+
+   void requestFuture() async {
+    final timeline = this.timeline;
+    if (timeline == null) return;
+    if (!timeline.canRequestFuture) return;
+    Logs().v('Requesting future...');
+    try {
+      final mostRecentEventId = timeline.events.first.eventId;
+      await timeline.requestFuture(historyCount: _loadHistoryCount);
+      // setReadMarker(eventId: mostRecentEventId);
+    } catch (err) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "حطایی رخ داده است"
+            // (err).toLocalizedStrin(context)
+            ,
+          ),
+        ),
+      );
+      rethrow;
+    }
+  }
+
+
+   void requestHistory() async {
+    if (!timeline.canRequestHistory) return;
+    Logs().v('Requesting history...');
+    try {
+      await timeline.requestHistory(historyCount: _loadHistoryCount);
+    } catch (err) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+           "خطایی رخ داده است"
+            // (err).toLocalizedString(context),
+          ),
+        ),
+      );
+      rethrow;
+    }
+  }
+
+  void redactEventsAction() async {
+    final confirmed = await showOkCancelAlertDialog(
+            useRootNavigator: false,
+            context: context,
+            title: 'آیا از حذف این پیام اطمینان دارید؟',
+            okLabel: 'بله',
+            cancelLabel: 'خیر',
+            style: AdaptiveStyle.adaptive) ==
+        OkCancelResult.ok;
+    if (!confirmed) return;
+    for (final event in selectedEvents) {
+      await showFutureLoadingDialog(
+        context: context,
+        future: () async {
+          if (event.status.isSent) {
+            if (event.canRedact) {
+              await event.redactEvent();
+            } else {
+              if (client == null) {
+                return;
+              }
+              final room = client.getRoomById(roomId);
+              await Event.fromJson(event.toJson(), room!).redactEvent();
+              // final x = selectedEvents.first.senderId == client.userID;
+
+              // if (x == null) {
+              //   return;
+              // }
+              // final room = client.getRoomById(roomId)!;
+              // await Event.fromJson(event.toJson(), room).redactEvent();
+              // //
+              //   final client = currentRoomBundle.firstWhere(
+              //   (cl) => selectedEvents.first.senderId == cl!.userID,
+              //   orElse: () => null,
+              // );
+              // if (client == null) {
+              //   return;
+              // }
+              // final room = client.getRoomById(roomId);
+              // await Event.fromJson(event.toJson(), room).redactEvent();
+            }
+          } else {
+            await event.remove();
+          }
+        },
+      );
+    }
+    setState(() {
+      selectedEvents.clear();
+    });
+
+    void replyAction({Event? replyTo}) {
+      setState(() {
+        replyEvent = replyTo ?? selectedEvents.first;
+        selectedEvents.clear();
+      });
+      inputFocus.requestFocus();
+    }
+  }
+
   //_getTimeLine
-  Future<void> _getTimeline({
+   Future<void> _getTimeline({
     required String eventContextId,
     Duration timeout = const Duration(seconds: 7),
   }) async {

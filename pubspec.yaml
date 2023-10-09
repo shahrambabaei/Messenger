@@ -41,6 +41,8 @@ dependencies:
   flutter_localization: ^0.1.14
   intl: any
   future_loading_dialog: ^0.2.4
+  fluttertoast: ^8.2.2
+  adaptive_dialog: ^1.9.0+2
 
 dev_dependencies:
   flutter_test:
