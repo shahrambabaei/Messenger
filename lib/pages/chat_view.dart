@@ -105,6 +105,7 @@ class ChatView extends StatelessWidget {
                                 actions: _appBarActions(context),
                                 
                       ),
+                    
                       body: Stack(children: [
                         Container(
                           decoration: BoxDecoration(
@@ -131,6 +132,7 @@ class ChatView extends StatelessWidget {
                                           strokeWidth: 2),
                                     );
                                   }
+                             
                                   return ChatEventList(controller: controller);
                                 },
                               ),
@@ -151,6 +153,7 @@ class ChatView extends StatelessWidget {
                             )
                           ],
                         ))
+                  
                       ]),
                     );
                   },

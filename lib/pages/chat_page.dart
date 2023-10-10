@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:chat_app/config/clientprovider.dart';
 import 'package:chat_app/pages/chat_view.dart';
@@ -51,15 +52,15 @@ class ChatController extends State<ChatPageWithRoom> {
   late Client client;
   late Event replyEvent;
   late Event editEvent;
-  late Timeline timeline;
+  late Timeline? timeline;
   late String readMarkerEventId;
   List<Event> selectedEvents = [];
   bool get selectMode => selectedEvents.isNotEmpty;
   FocusNode inputFocus = FocusNode();
   String get roomId => widget.room.id;
-   bool isRequestingHistory = false;
+  bool isRequestingHistory = false;
   bool isRequestingFuture = false;
-   final int _loadHistoryCount = 100;
+  final int _loadHistoryCount = 100;
 
   @override
   void initState() {
@@ -109,8 +110,7 @@ class ChatController extends State<ChatPageWithRoom> {
     return true;
   }
 
-
-   void requestFuture() async {
+  void requestFuture() async {
     final timeline = this.timeline;
     if (timeline == null) return;
     if (!timeline.canRequestFuture) return;
@@ -133,23 +133,38 @@ class ChatController extends State<ChatPageWithRoom> {
     }
   }
 
-
-   void requestHistory() async {
-    if (!timeline.canRequestHistory) return;
+  void requestHistory() async {
+    if (!timeline!.canRequestHistory) return;
     Logs().v('Requesting history...');
     try {
-      await timeline.requestHistory(historyCount: _loadHistoryCount);
+      await timeline!.requestHistory(historyCount: _loadHistoryCount);
     } catch (err) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-           "خطایی رخ داده است"
-            // (err).toLocalizedString(context),
-          ),
+          content: Text("خطایی رخ داده است"
+              // (err).toLocalizedString(context),F
+              ),
         ),
       );
       rethrow;
     }
+  }
+    int? findChildIndexCallback(Key key, Map<String, int> thisEventsKeyMap) {
+    // this method is called very often. As such, it has to be optimized for speed.
+    if (key is! ValueKey) {
+      return null;
+    }
+    final eventId = key;
+    if (eventId is! String) {
+      return null;
+    }
+    // first fetch the last index the event was at
+    final index = thisEventsKeyMap[eventId];
+    if (index == null) {
+      return null;
+    }
+    // we need to +1 as 0 is the typing thing at the bottom
+    return index + 1;
   }
 
   void redactEventsAction() async {
@@ -213,15 +228,15 @@ class ChatController extends State<ChatPageWithRoom> {
   }
 
   //_getTimeLine
-   Future<void> _getTimeline({
-    required String eventContextId,
+  Future<void> _getTimeline({
+    String? eventContextId,
     Duration timeout = const Duration(seconds: 7),
   }) async {
     await client.roomsLoading;
     await client.accountDataLoading;
     if (eventContextId != null &&
         (!eventContextId.isValidMatrixId || eventContextId.sigil != '\$')) {
-      eventContextId = "";
+      eventContextId = null;
     }
     try {
       timeline = await room
@@ -230,6 +245,7 @@ class ChatController extends State<ChatPageWithRoom> {
             eventContextId: eventContextId,
           )
           .timeout(timeout);
+      print("TimeLine Is:$timeline");
     } catch (e, s) {
       Logs().w('Unable to load timeline on event ID $eventContextId', e, s);
       if (!mounted) return;

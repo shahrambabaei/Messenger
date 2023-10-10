@@ -8,23 +8,28 @@ class ChatEventList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final thisEventsKeyMap = <String, int>{};
+    for (var i = 0; i < controller.timeline!.events.length; i++) {
+      thisEventsKeyMap[controller.timeline!.events[i].eventId] = i;
+    }
     return ListView.custom(
-        padding: EdgeInsets.only(
-          top: 16,
-          bottom: 4,
-          left: 10,
-          right: 10,
-        ),
-        reverse: true,
-        childrenDelegate: SliverChildBuilderDelegate((context, i) {
+      padding: EdgeInsets.only(
+        top: 16,
+        bottom: 4,
+        left: 10,
+        right: 10,
+      ),
+      reverse: true,
+      childrenDelegate: SliverChildBuilderDelegate(
+        (context, int i) {
           // Footer to display typing indicator and read receipts:
           if (i == 0) {
-            if (controller.timeline.isRequestingFuture) {
+            if (controller.timeline!.isRequestingFuture) {
               return const Center(
                 child: CircularProgressIndicator.adaptive(strokeWidth: 2),
               );
             }
-            if (controller.timeline.canRequestFuture) {
+            if (controller.timeline!.canRequestFuture) {
               return Builder(
                 builder: (context) {
                   WidgetsBinding.instance
@@ -45,13 +50,13 @@ class ChatEventList extends StatelessWidget {
             );
           }
           // Request history button or progress indicator:
-          if (i == controller.timeline.events.length + 1) {
-            if (controller.timeline.isRequestingHistory) {
+          if (i == controller.timeline!.events.length + 1) {
+            if (controller.timeline!.isRequestingHistory) {
               return const Center(
                 child: CircularProgressIndicator.adaptive(strokeWidth: 2),
               );
             }
-            if (controller.timeline.canRequestHistory) {
+            if (controller.timeline!.canRequestHistory) {
               return Builder(
                 builder: (context) {
                   WidgetsBinding.instance.addPostFrameCallback(
@@ -68,8 +73,18 @@ class ChatEventList extends StatelessWidget {
             }
             return const SizedBox.shrink();
           }
-          final event = controller.timeline.events[i - 1];
-          return Message();
-        }));
+          final event = controller.timeline!.events[i - 1];
+          return Message(
+              event: event,
+              nextEvent: i < controller.timeline!.events.length
+                  ? controller.timeline!.events[i]
+                  : null,
+              timeline: controller.timeline!);
+        },
+        childCount: controller.timeline!.events.length + 2,
+        findChildIndexCallback: (key) =>
+            controller.findChildIndexCallback(key, thisEventsKeyMap),
+      ),
+    );
   }
 }

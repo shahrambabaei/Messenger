@@ -43,6 +43,10 @@ dependencies:
   future_loading_dialog: ^0.2.4
   fluttertoast: ^8.2.2
   adaptive_dialog: ^1.9.0+2
+  file_picker: ^5.5.0
+  image_picker: ^1.0.4
+  share_plus: ^8.0.0
+  universal_html: ^2.2.4
 
 dev_dependencies:
   flutter_test:
