@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math';
 
 import 'package:chat_app/config/clientprovider.dart';
 import 'package:chat_app/pages/chat_view.dart';
+import 'package:chat_app/pages/events/send_file_dialog.dart';
+import 'package:chat_app/utils/matrix_file_extension.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -47,12 +49,13 @@ class ChatPageWithRoom extends StatefulWidget {
 }
 
 class ChatController extends State<ChatPageWithRoom> {
+  TextEditingController sendController = TextEditingController();
   Room get room => widget.room;
   late Future<void> loadTimelineFuture;
   late Client client;
-  late Event replyEvent;
-  late Event editEvent;
-  late Timeline? timeline;
+  Event? replyEvent;
+  Event? editEvent;
+  Timeline? timeline;
   late String readMarkerEventId;
   List<Event> selectedEvents = [];
   bool get selectMode => selectedEvents.isNotEmpty;
@@ -61,10 +64,83 @@ class ChatController extends State<ChatPageWithRoom> {
   bool isRequestingHistory = false;
   bool isRequestingFuture = false;
   final int _loadHistoryCount = 100;
+  String pendingText = '';
+  String inputText = '';
+
+  void onAddPopupMenuButtonSelected(String choice) {
+    if (choice == 'file') {
+      sendFileAction();
+    }
+    if (choice == 'image') {
+      sendImageAction();
+    }
+    if (choice == 'camera') {
+      // openCameraAction();
+    }
+    if (choice == 'camera-video') {
+      // openVideoCameraAction();
+    }
+    if (choice == 'sticker') {
+      // sendStickerAction();
+    }
+    if (choice == 'location') {
+      // sendLocationAction();
+    }
+  }
+
+  void sendFileAction() async {
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+    // ignore: use_build_context_synchronously
+    await showDialog(
+      context: context,
+      useRootNavigator: false,
+      builder: (c) => SendFileDialog(
+        files: result.files
+            .map(
+              (xfile) => MatrixFile(
+                bytes: xfile.bytes!,
+                name: xfile.name,
+              ).detectFileType,
+            )
+            .toList(),
+        room: room,
+      ),
+    );
+  }
+
+  void sendImageAction() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+      allowMultiple: true,
+    );
+    if (result == null || result.files.isEmpty) return;
+
+    // ignore: use_build_context_synchronously
+    await showDialog(
+      context: context,
+      useRootNavigator: false,
+      builder: (c) => SendFileDialog(
+        files: result.files
+            .map(
+              (xfile) => MatrixFile(
+                bytes: xfile.bytes!,
+                name: xfile.name,
+              ).detectFileType,
+            )
+            .toList(),
+        room: room,
+      ),
+    );
+  }
 
   @override
   void initState() {
-    client = Provider.of<ClientProvider>(context, listen: false).client!;
+    client = Provider.of<ClientProvider>(context, listen: false).client;
     readMarkerEventId = room.fullyRead;
     loadTimelineFuture = _getTimeline(eventContextId: readMarkerEventId);
     super.initState();
@@ -110,6 +186,75 @@ class ChatController extends State<ChatPageWithRoom> {
     return true;
   }
 
+  Future<void> send() async {
+    room.sendTextEvent(
+      sendController.text,
+      inReplyTo: replyEvent,
+      editEventId: editEvent?.eventId,
+      // parseCommands: parseCommands,
+    );
+
+    sendController.value = TextEditingValue(
+      text: pendingText,
+      selection: const TextSelection.collapsed(offset: 0),
+    );
+
+    void sendFileAction() async {
+      // final result = await FilePicker.platform.pickFiles(
+      //   allowMultiple: true,
+      //   withData: true,
+      // );
+      // if (result == null || result.files.isEmpty) return;
+      // await showDialog(
+      //   context: context,
+      //   useRootNavigator: false,
+      //   builder: (c) => SendFileDialog(
+      //     files: result.files
+      //         .map(
+      //           (xfile) => MatrixFile(
+      //             bytes: xfile.bytes,
+      //             name: xfile.name,
+      //           ).detectFileType,
+      //         )
+      //         .toList(),
+      //     room: room,
+      //   ),
+      // );
+    }
+
+    void sendImageAction() async {
+      // final result = await FilePicker.platform.pickFiles(
+      //   type: FileType.image,
+      //   withData: true,
+      //   allowMultiple: true,
+      // );
+      // if (result == null || result.files.isEmpty) return;
+
+      // await showDialog(
+      //   context: context,
+      //   useRootNavigator: false,
+      //   builder: (c) => SendFileDialog(
+      //     files: result.files
+      //         .map(
+      //           (xfile) => MatrixFile(
+      //             bytes: xfile.bytes,
+      //             name: xfile.name,
+      //           ).detectFileType,
+      //         )
+      //         .toList(),
+      //     room: room,
+      //   ),
+      // );
+    }
+
+    setState(() {
+      inputText = pendingText;
+      replyEvent = null;
+      editEvent = null;
+      pendingText = '';
+    });
+  }
+
   void requestFuture() async {
     final timeline = this.timeline;
     if (timeline == null) return;
@@ -149,7 +294,8 @@ class ChatController extends State<ChatPageWithRoom> {
       rethrow;
     }
   }
-    int? findChildIndexCallback(Key key, Map<String, int> thisEventsKeyMap) {
+
+  int? findChildIndexCallback(Key key, Map<String, int> thisEventsKeyMap) {
     // this method is called very often. As such, it has to be optimized for speed.
     if (key is! ValueKey) {
       return null;
@@ -218,7 +364,7 @@ class ChatController extends State<ChatPageWithRoom> {
       selectedEvents.clear();
     });
 
-    void replyAction({Event? replyTo}) {
+    replyAction({Event? replyTo}) {
       setState(() {
         replyEvent = replyTo ?? selectedEvents.first;
         selectedEvents.clear();
@@ -226,6 +372,8 @@ class ChatController extends State<ChatPageWithRoom> {
       inputFocus.requestFocus();
     }
   }
+
+  replyAction({required Event replyTo}) {}
 
   //_getTimeLine
   Future<void> _getTimeline({
@@ -245,7 +393,6 @@ class ChatController extends State<ChatPageWithRoom> {
             eventContextId: eventContextId,
           )
           .timeout(timeout);
-      print("TimeLine Is:$timeline");
     } catch (e, s) {
       Logs().w('Unable to load timeline on event ID $eventContextId', e, s);
       if (!mounted) return;
@@ -268,6 +415,46 @@ class ChatController extends State<ChatPageWithRoom> {
 
     return;
   }
+  // Future<void> _getTimeline({
+  //   String? eventContextId,
+  //   Duration timeout = const Duration(seconds: 7),
+  // }) async {
+  //   await client.roomsLoading;
+  //   await client.accountDataLoading;
+  //   if (eventContextId != null &&
+  //       (!eventContextId.isValidMatrixId || eventContextId.sigil != '\$')) {
+  //     eventContextId = null;
+  //   }
+  //   try {
+  //     timeline = await room
+  //         .getTimeline(
+  //           onUpdate: updateView,
+  //           eventContextId: eventContextId,
+  //         )
+  //         .timeout(timeout);
+  //     print("TimeLine Is:$timeline");
+  //   } catch (e, s) {
+  //     Logs().w('Unable to load timeline on event ID $eventContextId', e, s);
+  //     if (!mounted) return;
+  //     timeline = await room.getTimeline(onUpdate: updateView);
+  //     if (!mounted) return;
+  //     if (e is TimeoutException || e is IOException) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //           content: const Text("jumpToLastReadMessage"),
+  //           action: SnackBarAction(
+  //             label: "jump",
+  //             onPressed: () {}
+  //             //  scrollToEventId(eventContextId)
+  //             ,
+  //           ),
+  //         ),
+  //       );
+  //     }
+  //   }
+
+  //   return;
+  // }
 
   @override
   Widget build(BuildContext context) {

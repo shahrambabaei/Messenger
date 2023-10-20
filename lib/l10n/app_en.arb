@@ -2,6 +2,9 @@
     "userName": "userNam",
     "password": "password",
     "login": "login",
-    "rooms":"Rooms"
-   
+    "rooms": "Rooms",
+    "send": "send",
+    "cancle": "cancle",
+    "countFiles": "{count} files",
+    "sendOriginal": "Send original"
 }

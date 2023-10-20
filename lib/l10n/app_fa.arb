@@ -2,5 +2,9 @@
   "userName": "نام کاربری",
   "password": "کلمه عبور",
   "login": "ورود",
-  "rooms": "گروه ها"
+  "rooms": "گروه ها",
+  "send":"ارسال",
+  "cancle":"کنسل",
+  "countFiles": "{count} فایل",
+  "sendOriginal": "ارسال اصل"
 }

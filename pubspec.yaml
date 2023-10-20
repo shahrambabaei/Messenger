@@ -36,6 +36,9 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2
   matrix: ^0.22.4
+  # Optional:
+  # flutter_olm: ^1.2.0
+  # flutter_openssl_crypto: ^0.1.0
   path_provider: ^2.1.1
   provider: ^6.0.5
   flutter_localization: ^0.1.14
@@ -43,10 +46,15 @@ dependencies:
   future_loading_dialog: ^0.2.4
   fluttertoast: ^8.2.2
   adaptive_dialog: ^1.9.0+2
-  file_picker: ^5.5.0
+  file_picker: ^6.0.0
   image_picker: ^1.0.4
-  share_plus: ^8.0.0
+  share_plus: ^7.2.1
   universal_html: ^2.2.4
+  swipe_to_action: ^0.2.0
+  flutter_blurhash: ^0.7.0
+  flutter_olm: ^1.0.0
+  flutter_openssl_crypto: ^0.1.0
+  video_compress: ^3.1.1
 
 dev_dependencies:
   flutter_test:

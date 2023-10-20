@@ -40,9 +40,7 @@ extension MatrixFileExtension on MatrixFile {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-        
-           downloadPath
-          ,
+          downloadPath,
         ),
       ),
     );

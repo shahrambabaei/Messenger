@@ -75,11 +75,21 @@ class ChatEventList extends StatelessWidget {
           }
           final event = controller.timeline!.events[i - 1];
           return Message(
-              event: event,
-              nextEvent: i < controller.timeline!.events.length
-                  ? controller.timeline!.events[i]
-                  : null,
-              timeline: controller.timeline!);
+            event,
+             onSwipe: (direction) => controller.replyAction(replyTo: event),
+            // onSelect: controller.onSelectMessage,
+            // scrollToEventId: (String eventId) =>
+            //     controller.scrollToEventId(eventId),
+            longPressSelect: controller.selectedEvents.isEmpty,
+            selected: controller.selectedEvents
+                .any((e) => e.eventId == event.eventId),
+          timeline: controller.timeline!,
+            displayReadMarker: controller.readMarkerEventId == event.eventId &&
+                controller.timeline!.allowNewEvent == false,
+            nextEvent: i < controller.timeline!.events.length
+                ? controller.timeline!.events[i]
+                : null,
+          );
         },
         childCount: controller.timeline!.events.length + 2,
         findChildIndexCallback: (key) =>

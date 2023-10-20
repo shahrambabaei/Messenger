@@ -2,6 +2,7 @@ import 'package:chat_app/config/clientprovider.dart';
 import 'package:chat_app/pages/chat_page.dart';
 import 'package:chat_app/pages/events/chat_event_list.dart';
 import 'package:chat_app/utils/theme/chatcolor_theme.dart';
+import 'package:chat_app/widget/chat_input_row.dart';
 import 'package:flutter/material.dart';
 import 'package:future_loading_dialog/future_loading_dialog.dart';
 import 'package:matrix/matrix.dart';
@@ -12,7 +13,7 @@ class ChatView extends StatelessWidget {
   final Room room;
   const ChatView({required this.controller, required this.room, Key? key})
       : super(key: key);
- List<Widget> _appBarActions(BuildContext context) {
+  List<Widget> _appBarActions(BuildContext context) {
     final clientProvider = Provider.of<ClientProvider>(context);
     final client = clientProvider.client;
     if (controller.selectMode) {
@@ -30,8 +31,7 @@ class ChatView extends StatelessWidget {
           IconButton(
             icon: Icon(
               Icons.copy_outlined,
-              color:
-               context.chatColorPick(
+              color: context.chatColorPick(
                   dark: ChatColorPalette.white, light: ChatColorPalette.black),
             ),
             tooltip: "copy",
@@ -102,10 +102,8 @@ class ChatView extends StatelessWidget {
                                   Navigator.pop(context);
                                 },
                                 icon: Icon(Icons.arrow_back)),
-                                actions: _appBarActions(context),
-                                
+                        actions: _appBarActions(context),
                       ),
-                    
                       body: Stack(children: [
                         Container(
                           decoration: BoxDecoration(
@@ -132,39 +130,69 @@ class ChatView extends StatelessWidget {
                                           strokeWidth: 2),
                                     );
                                   }
-                             
+
                                   return ChatEventList(controller: controller);
                                 },
                               ),
                             )),
-                            Container(
-                              height: 56,
-                              margin: const EdgeInsets.only(
-                                bottom: 10,
-                                left: 10,
-                                right: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.blue,
-                                borderRadius: BorderRadius.only(
-                                    bottomRight: Radius.circular(12),
-                                    bottomLeft: Radius.circular(12)),
-                              ),
-                            )
+                            if (controller.room.canSendDefaultMessages &&
+                                controller.room.membership == Membership.join)
+                              Container(
+                                margin: const EdgeInsets.only(
+                                  bottom: 10,
+                                  left: 15,
+                                  right: 15,
+                                ),
+                                child: Material(
+                                  borderRadius: BorderRadius.only(
+                                      bottomLeft: Radius.circular(12),
+                                      bottomRight: Radius.circular(12)),
+                                  color: Colors.white,
+                                  child: ChatInputRow(controller: controller),
+                                ),
+                              )
+                            // Container(
+                            //   margin: EdgeInsets.only(
+                            //     bottom: 10,
+                            //     left: 15,
+                            //     right: 15,
+                            //   ),
+                            //   alignment: Alignment.center,
+                            //   child: Material(
+                            //     child: Column(children: [
+                            //       Container(
+                            //         height: 56,
+                            //         decoration: BoxDecoration(
+                            //             color: Colors.blue,
+                            //             borderRadius: BorderRadius.only(
+                            //                 bottomLeft: Radius.circular(12),
+                            //                 bottomRight:
+                            //                     Radius.circular(12))),
+                            //       )
+                            //       ChatInputRow()
+                            //     ]),
+                            //   ),
+                            // )
+
+                            // Container(
+                            //   height: 56,
+                            //   margin: const EdgeInsets.only(
+                            //     bottom: 10,
+                            //     left: 10,
+                            //     right: 10,
+                            //   ),
+                            //   decoration: BoxDecoration(
+                            //     color: Colors.blue,
+                            //     borderRadius: BorderRadius.only(
+                            //         bottomRight: Radius.circular(12),
+                            //         bottomLeft: Radius.circular(12)),
+                            //   ),
+                            // )
                           ],
                         ))
-                  
                       ]),
                     );
                   },
                 )));
   }
 }
-
-
-
-
-
-
-
-
